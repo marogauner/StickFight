@@ -3,11 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using StickFight.src;
 using StickFight.src.entities;
-using StickFight.src.interfaces;
-using StickFight.src.objects;
 using System.Collections.Generic;
-using System.Diagnostics;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace StickFight;
 
@@ -51,7 +47,7 @@ public class Game1 : Game
         // Map
         Texture2D groundTextureAtlas = Content.Load<Texture2D>("grass");
         rectTexture = Content.Load<Texture2D>("collisionRect");
-        tilemap = new("../../../data/map2.csv", groundTextureAtlas);
+        tilemap = new("../../../data/map2.csv", groundTextureAtlas, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight);
     }
 
     protected override void Update(GameTime gameTime)

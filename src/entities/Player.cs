@@ -46,7 +46,7 @@ internal class Player : Entity
         height = 32;
         position = new Vector2(100, 400);
         velocity = new Vector2(0, 0);
-        speed = 1;
+        speed = 1.5f;
         maxSpeed = 10;
         collisionColor = Color.Blue * 0.25f;
         scale = 1f;
@@ -85,6 +85,7 @@ internal class Player : Entity
         TileCollisionDetection(adjacentTiles); // CHECK ORDER 
         HandleUserInput(entities);
         SetSpriteFlip();
+        ApplyFriction();
 
         position += velocity;
 
@@ -99,12 +100,12 @@ internal class Player : Entity
         currentKeyboardState = Keyboard.GetState();
 
         // Horizontal Movement Input
-        if (currentKeyboardState.IsKeyDown(Keys.A))
+        if (currentKeyboardState.IsKeyDown(Keys.A) && currentKeyboardState.IsKeyUp(Keys.D))
         {
             velocity.X += speed * -1;
             velocity.X = Math.Max(velocity.X, -maxSpeed);
         }
-        if (currentKeyboardState.IsKeyDown(Keys.D))
+        else if (currentKeyboardState.IsKeyDown(Keys.D) && currentKeyboardState.IsKeyUp(Keys.A))
         {
             velocity.X += speed * 1;
             velocity.X = Math.Min(velocity.X, maxSpeed);

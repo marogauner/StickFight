@@ -1,9 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 
 namespace StickFight.src;
@@ -18,10 +16,14 @@ internal sealed class Tilemap
     private int displayTileSize = 32;
 
 
-    public Tilemap(string filepath, Texture2D texture)
+    public Tilemap(string filepath, Texture2D texture, int screenWidth, int screenHeight)
     {
         ground = ParseCSV(filepath);
         spritesheet = texture;
+
+        // Calculate displayTileSize
+        int tilesHorizontally = 60;
+        displayTileSize = screenWidth / tilesHorizontally;
     }
 
     // Parse csv file into <coordinates, tileType>
