@@ -12,7 +12,7 @@ internal sealed class Tilemap
     private Texture2D spritesheet;
     private const int tileSize = 16;
 
-    private int numTilesPerRow = 1;
+    private int numTilesPerRow = 16;
     private int displayTileSize = 32;
 
 

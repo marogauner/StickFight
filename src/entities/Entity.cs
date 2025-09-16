@@ -1,9 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using StickFight.src.interfaces;
 using System;
-using System.Collections.Generic;
 
 namespace StickFight.src.entities;
 
@@ -13,12 +11,14 @@ internal class Entity
     public Vector2 velocity;
     protected float speed;
     protected float maxSpeed;
+    protected float gravityAmount = 1f;
     protected float maxGravity = 13f;
     protected float friction = 0.8f;
     protected bool isOnGround;
     protected Texture2D collisionTexture;
     protected float scale;
     protected SpriteEffects flip = SpriteEffects.None;
+    protected bool isFacingRight = true;
     protected bool debug = false;
     // Draw HP
     protected int maxHP;
@@ -35,6 +35,19 @@ internal class Entity
         );
     protected Color collisionColor = Color.Yellow * 0.2f;
 
+    // State Machine
+    protected const int JUMP_VELOCITY = 20;
+    protected int remainingJumps = 2;
+    public enum PlayerStates
+    {
+        Idle,
+        Walk,
+        Jump,
+        Fall,
+    }
+
+    protected PlayerStates currentState = PlayerStates.Idle;
+    protected PlayerStates previousState = PlayerStates.Idle;
     public virtual void LoadContent(ContentManager content)
     {
         collisionTexture = content.Load<Texture2D>("collisionRect");
@@ -44,7 +57,7 @@ internal class Entity
     //public virtual void Update(int windowHeight, List<ICollidable> platforms) { }
     protected void ApplyGravity()
     {
-        velocity.Y += 1f;
+        velocity.Y += gravityAmount;
         velocity.Y = Math.Min(velocity.Y, maxGravity);
     }
 
@@ -74,12 +87,7 @@ internal class Entity
 
     protected void SetSpriteFlip()
     {
-        flip = velocity.X switch
-        {
-            > 0 => SpriteEffects.None,
-            < 0 => SpriteEffects.FlipHorizontally,
-            _ => SpriteEffects.FlipHorizontally,
-        };
+        flip = isFacingRight ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
     }
 
     #region Collision

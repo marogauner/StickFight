@@ -11,6 +11,11 @@
     <ApplicationIcon>Icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="src\entities\States\**" />
+    <EmbeddedResource Remove="src\entities\States\**" />
+    <None Remove="src\entities\States\**" />
+  </ItemGroup>
+  <ItemGroup>
     <None Remove="Icon.ico" />
     <None Remove="Icon.bmp" />
   </ItemGroup>
@@ -27,7 +32,9 @@
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.*" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="src\entities\States\" />
+    <Reference Include="MonoGameLibrary">
+      <HintPath>..\MonoGameLibrary\bin\Debug\net8.0\MonoGameLibrary.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Target Name="RestoreDotnetTools" BeforeTargets="CollectPackageReferences">
     <Message Text="Restoring dotnet tools (this might take a while depending on your internet speed and should only happen upon building your project for the first time, or after upgrading MonoGame, or clearing your nuget cache)" Importance="High" />

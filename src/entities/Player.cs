@@ -2,9 +2,12 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using StickFight.src.input;
 using StickFight.src.ui;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using static StickFight.src.input.MouseButtons;
 
 namespace StickFight.src.entities;
 
@@ -13,33 +16,23 @@ internal class Player : Entity
     // Attack
     private int facingDirection = 1;
     private Rectangle PunchHurtBox;
-    private MouseState previousMouseState;
-    private MouseState currentMouseState;
-    private KeyboardState currentKeyboardState;
-    private KeyboardState previousKeyboardState;
 
     // Healthbar
-    Healthbar hpBar;
+    private Healthbar hpBar;
 
     // Animation
-    AnimationManager animationManager;
+    private AnimationManager animationManager;
 
-    // State Machine
-    const int JUMP_VELOCITY = 20;
-    private int remainingJumps = 2;
+    public PlayerIndex playerIndex;
 
-    public enum PlayerStates
-    {
-        Idle,
-        Walk,
-        Jump,
-        Fall,
-    }
+    public bool isAlive;
 
-    private PlayerStates currentState = PlayerStates.Idle;
-    private PlayerStates previousState = PlayerStates.Idle;
+    // Knockback
+    private bool isKnockedBack = false;
+    private float knockbackTimer = 0f;
+    private const float knockbackDuration = 0.15f;
 
-    public Player(ContentManager content)
+    public Player(ContentManager content, PlayerIndex index)
     {
         LoadContent(content);
         width = 32;
@@ -53,11 +46,10 @@ internal class Player : Entity
         maxHP = 3;
         hp = maxHP;
         hpBar = new Healthbar(maxHP, hp, content);
-        previousMouseState = Mouse.GetState();
-        currentMouseState = previousMouseState;
-        previousKeyboardState = Keyboard.GetState();
-        currentKeyboardState = previousKeyboardState;
-        debug = true;
+        debug = false;
+        playerIndex = index;
+        isAlive = true;
+        SetPlayerPositions();
     }
 
     public override void LoadContent(ContentManager content)
@@ -78,12 +70,35 @@ internal class Player : Entity
         base.LoadContent(content);
     }
 
-    public void Update(int windowHeight, List<Enemy> entities, Dictionary<Vector2, int> adjacentTiles)
+    public void Update(GameTime gameTime, int windowHeight, List<Player> players, Dictionary<Vector2, int> adjacentTiles)
     {
+        // Knockback
+        if (isKnockedBack)
+        {
+            knockbackTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+            if (knockbackTimer <= 0f)
+            {
+                isKnockedBack = false;
+            }
+            gravityAmount = 0.25f;
+        }
+        else
+        {
+            gravityAmount = 1f;
+        }
+
         ApplyGravity();
-        EdgeCollision(windowHeight);
-        TileCollisionDetection(adjacentTiles); // CHECK ORDER 
-        HandleUserInput(entities);
+        //EdgeCollision(windowHeight);
+        TileCollisionDetection(adjacentTiles); // CHECK ORDER
+
+        if (playerIndex == PlayerIndex.One)
+        {
+            DecideInputForPlayerOne(players);
+        }
+        else
+        {
+            HandleGamepadInput(players);
+        }
         SetSpriteFlip();
         ApplyFriction();
 
@@ -94,33 +109,101 @@ internal class Player : Entity
         animationManager.Update(currentState, remainingJumps);
     }
 
-    private void HandleUserInput(List<Enemy> entities)
+    private void DecideInputForPlayerOne(List<Player> players)
     {
-        currentMouseState = Mouse.GetState();
-        currentKeyboardState = Keyboard.GetState();
+        if (playerIndex != PlayerIndex.One) return;
+        var gamepad_one = Globals.Input.GetGamePad(playerIndex);
+        if (gamepad_one.IsConnected)
+        {
+            HandleGamepadInput(players);
+        }
+        else
+        {
+            HandleMouseAndKeyboardInput(players);
+        }
+    }
+    private void HandleMouseAndKeyboardInput(List<Player> players)
+    {
+        if (isKnockedBack) return;
+        if (playerIndex != 0) return;
+
+        var mouse = Globals.Input.Mouse;
+        var keyboard = Globals.Input.Keyboard;
 
         // Horizontal Movement Input
-        if (currentKeyboardState.IsKeyDown(Keys.A) && currentKeyboardState.IsKeyUp(Keys.D))
+        if (keyboard.IsKeyDown(Keys.A) && keyboard.IsKeyUp(Keys.D))
         {
             velocity.X += speed * -1;
             velocity.X = Math.Max(velocity.X, -maxSpeed);
+            isFacingRight = false;
         }
-        else if (currentKeyboardState.IsKeyDown(Keys.D) && currentKeyboardState.IsKeyUp(Keys.A))
+        else if (keyboard.IsKeyDown(Keys.D) && keyboard.IsKeyUp(Keys.A))
         {
             velocity.X += speed * 1;
             velocity.X = Math.Min(velocity.X, maxSpeed);
+            isFacingRight = true;
         }
         else
         {
             velocity.X = 0;
         }
+
         // Inputs
-        bool jumpPressed = ((currentKeyboardState.IsKeyDown(Keys.W) && previousKeyboardState.IsKeyUp(Keys.W)) ||
-                    (currentKeyboardState.IsKeyDown(Keys.Space) && previousKeyboardState.IsKeyUp(Keys.Space)));
+        bool jumpPressed = (keyboard.WasKeyJustPressed(Keys.W) || keyboard.WasKeyJustPressed(Keys.Space));
+        bool attackPressed = (mouse.WasButtonJustPressed(MouseButton.Left));
+        
+        HandleStates(jumpPressed);
 
-        bool LMBPressed = (currentMouseState.LeftButton == ButtonState.Pressed && previousMouseState.LeftButton == ButtonState.Released);
+        if (attackPressed)
+        {
+            animationManager.playerIsAttacking = true;
+            animationManager.StartAttackAnimation();
+            Attack(players);
+        }
+    }
+    private void HandleGamepadInput(List<Player> players)
+    {
+        if (isKnockedBack) return;
+        var input = Globals.Input.GetGamePad(playerIndex);
 
+        // Deadzone
+        const float deadzone = 0;
 
+        // Horizontal Movement Input
+        if (input.LeftThumbstick.X < -deadzone || input.IsButtonDown(Buttons.DPadLeft))
+
+        {
+            velocity.X += speed * -1;
+            velocity.X = Math.Max(velocity.X, -maxSpeed);
+            isFacingRight = false;
+        }
+        else if (input.LeftThumbstick.X > deadzone)
+        {
+            velocity.X += speed * 1;
+            velocity.X = Math.Min(velocity.X, maxSpeed);
+            isFacingRight = true;
+        }
+        else
+        {
+            velocity.X = 0;
+        }
+
+        // Inputs
+        bool jumpPressed = input.WasButtonJustPressed(Buttons.A);
+        bool attackPressed = input.WasButtonJustPressed(Buttons.RightShoulder);
+
+        HandleStates(jumpPressed);
+
+        if (attackPressed)
+        {
+            animationManager.playerIsAttacking = true;
+            animationManager.StartAttackAnimation();
+            Attack(players);
+        }
+    }
+    #region STATE TRANSITIONS
+    private void HandleStates(bool jumpPressed)
+    {
         switch (currentState)
         {
             case PlayerStates.Idle:
@@ -131,7 +214,7 @@ internal class Player : Entity
                     EnterJumpState();
                 }
                 // Walk
-                if (currentKeyboardState.IsKeyDown(Keys.A) || currentKeyboardState.IsKeyDown(Keys.D))
+                if (velocity.X != 0) // TEMP, switch back to input check
                 {
                     currentState = PlayerStates.Walk;
                     EnterWalkState();
@@ -202,14 +285,6 @@ internal class Player : Entity
             default:
                 break;
         }
-
-        if (LMBPressed)
-        {
-            animationManager.StartAttackAnimation();
-            Attack(entities);
-        }
-        previousMouseState = currentMouseState;
-        previousKeyboardState = currentKeyboardState;
     }
 
     // THIS CODE SUX
@@ -233,14 +308,15 @@ internal class Player : Entity
             remainingJumps = 1;
         }
     }
+    #endregion
 
     void UpdateAttackHurtBox()
     {
         if (velocity.X > 0) { facingDirection = 1; }
         else if (velocity.X < 0) { facingDirection = -1; }
 
-        var HurtBoxWidth = 100;
-        var HurtBoxHeight = 50;
+        var HurtBoxWidth = 64;
+        var HurtBoxHeight = 32;
 
         if (facingDirection < 0)
         {
@@ -262,15 +338,42 @@ internal class Player : Entity
         }
     }
 
-    void Attack(List<Enemy> entities)
+    void Attack(List<Player> players)
     {
-        foreach(var entity in entities)
+        foreach(var p in players)
         {
-            if (PunchHurtBox.Intersects(entity.CollisionRectangle))
+            if (p.playerIndex == playerIndex) continue;
+            if (PunchHurtBox.Intersects(p.CollisionRectangle))
             {
-                entity.TakeDamage();
+                p.TakeDamage(position);
+                Debug.WriteLine("HIT");
             }
         }
+    }
+
+    public void TakeDamage(Vector2 incomingPosition)
+    {
+        if (!isAlive) return;
+
+        ApplyKnockback(incomingPosition);
+        if (hp > 0)
+        {
+            hp -= 1;
+        }
+        if (hp <= 0)
+        {
+            isAlive = false;
+        }
+        hpBar.SetHealth(hp);
+    }
+    private void ApplyKnockback(Vector2 incomingPosition)
+    {
+        int knockbackAmount = 20;
+        Vector2 knockbackdirection = (position - incomingPosition);
+        knockbackdirection.Normalize();
+        velocity += knockbackdirection * knockbackAmount;
+        isKnockedBack = true;
+        knockbackTimer = knockbackDuration;
     }
 
     private void TileCollisionDetection(Dictionary<Vector2, int> adjacentTiles)
@@ -339,12 +442,31 @@ internal class Player : Entity
         }
     }
 
+    private void SetPlayerPositions()
+    {
+        position = playerIndex switch
+        {
+            PlayerIndex.One => new Vector2(100, 400),
+            PlayerIndex.Two => new Vector2(300, 400),
+            PlayerIndex.Three => new Vector2(500, 400),
+            PlayerIndex.Four => new Vector2(700, 400)
+        };
+    }
+
+    public void Respawn()
+    {
+        isAlive = true;
+        hp = maxHP;
+        hpBar.SetHealth(hp);
+        SetPlayerPositions();
+    }
+
     public override void Draw(SpriteBatch spriteBatch)
     {
         // Draw Attack
-        if (debug)
+        if (animationManager.playerIsAttacking)
         {
-            spriteBatch.Draw(collisionTexture, PunchHurtBox, Color.Red);
+            spriteBatch.Draw(collisionTexture, PunchHurtBox, Color.Red * 0.2f);
         }
         // State
         spriteBatch.DrawString(font, currentState.ToString(), new Vector2(position.X + width * scale / 2 - font.MeasureString(currentState.ToString()).X / 2, position.Y - 40), Color.White);
@@ -353,7 +475,6 @@ internal class Player : Entity
         spriteBatch.Draw(
             animationManager.GetTexture(),
             new Rectangle((int)position.X, (int)position.Y, width, height),
-            //new Rectangle((int)position.X, (int)position.Y, width, height),
             animationManager.GetFrame(),
             Color.White,
             0f,

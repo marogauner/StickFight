@@ -1,16 +1,17 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using static StickFight.src.entities.Entity;
 using static StickFight.src.entities.Player;
 
 namespace StickFight.src;
 
 internal class AnimationManager(
     Texture2D idle,
-    Texture2D walk,
-    Texture2D falling,
-    Texture2D jumpTexture,
-    Texture2D doublejumpTexture,
-    Texture2D attackTexture,
+    Texture2D walk = null,
+    Texture2D falling = null,
+    Texture2D jumpTexture = null,
+    Texture2D doublejumpTexture = null,
+    Texture2D attackTexture = null,
     int animationSpeed = 6)
 {
     private Animation idleAnimation = new Animation(4, 16, 16, idle, animationSpeed);
@@ -30,9 +31,8 @@ internal class AnimationManager(
     private Texture2D attack_spritesheet = attackTexture;
 
     // PlayerInfo
-    private int playerRemainingjumps; 
-    private bool isAttacking = false;
-
+    private int playerRemainingjumps;
+    public bool playerIsAttacking;
     public void Update(PlayerStates state, int remainingJumps)
     {
         currentAnimation = state;
@@ -63,19 +63,19 @@ internal class AnimationManager(
         }
 
         // Attack
-        if (isAttacking)
+        if (playerIsAttacking)
         {
             attackAnimation.Update();
             if (attackAnimation.animationFinished)
             {
-                isAttacking = false;
+                playerIsAttacking = false;
             }
         }
     }
 
     public Rectangle GetFrame()
     {
-        if (isAttacking)
+        if (playerIsAttacking)
         {
             return attackAnimation.GetFrame();
         }
@@ -91,7 +91,7 @@ internal class AnimationManager(
 
     public Texture2D GetTexture()
     {
-        if (isAttacking)
+        if (playerIsAttacking)
         {
             return attack_spritesheet;
         }
@@ -107,7 +107,7 @@ internal class AnimationManager(
 
     public void StartAttackAnimation()
     {
-        isAttacking = true;
+        playerIsAttacking = true;
         attackAnimation.ResetAnimation();
     }
 }
