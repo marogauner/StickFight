@@ -10,11 +10,10 @@ internal sealed class Tilemap
 {
     private Dictionary<Vector2, int> ground;
     private Texture2D spritesheet;
-    private const int tileSize = 16;
+    public const int tileSize = 16;
 
     private int numTilesPerRow = 16;
-    private int displayTileSize = 32;
-
+    public int DisplayTileSize { get; private set; }
 
     public Tilemap(string filepath, Texture2D texture, int screenWidth, int screenHeight)
     {
@@ -23,7 +22,8 @@ internal sealed class Tilemap
 
         // Calculate displayTileSize
         int tilesHorizontally = 60;
-        displayTileSize = screenWidth / tilesHorizontally;
+        DisplayTileSize = screenWidth / tilesHorizontally;
+        DisplayTileSize = tileSize;
     }
 
     // Parse csv file into <coordinates, tileType>
@@ -55,13 +55,14 @@ internal sealed class Tilemap
     public Dictionary<Vector2, int> GetAdjacentTiles(Vector2 playerPosition)
     {
         Dictionary<Vector2, int> res = [];
-        
+        var areaToCheck = 8;
+
         foreach (var item in ground)
         {
-            if (Math.Abs((item.Key.X * displayTileSize) - playerPosition.X) <= tileSize * 8 &&
-               (Math.Abs((item.Key.Y * displayTileSize) - playerPosition.Y) <= tileSize * 8))
+            if (Math.Abs((item.Key.X * DisplayTileSize) - playerPosition.X) <= tileSize * areaToCheck &&
+               (Math.Abs((item.Key.Y * DisplayTileSize) - playerPosition.Y) <= tileSize * areaToCheck))
             {
-                res.Add(item.Key * displayTileSize, item.Value);
+                res.Add(item.Key * DisplayTileSize, item.Value);
             }
             //Debug.WriteLine($"{item.Key.X * displayTileSize}, {item.Key.Y * displayTileSize}");
         }
@@ -73,10 +74,10 @@ internal sealed class Tilemap
         foreach(var item in ground)
         {
             Rectangle drect = new(
-                (int)item.Key.X * displayTileSize,
-                (int)item.Key.Y * displayTileSize,
-                displayTileSize,
-                displayTileSize
+                (int)item.Key.X * DisplayTileSize,
+                (int)item.Key.Y * DisplayTileSize,
+                DisplayTileSize,
+                DisplayTileSize
                 );
 
             int x = item.Value % numTilesPerRow;

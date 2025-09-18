@@ -2,7 +2,6 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using StickFight.src.input;
 using StickFight.src.ui;
 using System;
 using System.Collections.Generic;
@@ -11,7 +10,7 @@ using static StickFight.src.input.MouseButtons;
 
 namespace StickFight.src.entities;
 
-internal class Player : Entity
+public class Player : Entity
 {
     // Attack
     private int facingDirection = 1;
@@ -32,9 +31,11 @@ internal class Player : Entity
     private float knockbackTimer = 0f;
     private const float knockbackDuration = 0.15f;
 
-    public Player(ContentManager content, PlayerIndex index)
+    //
+    public int tilemapDisplaySize;
+    public Player(PlayerIndex index, int tileDisplaySize)
     {
-        LoadContent(content);
+        LoadContent();
         width = 32;
         height = 32;
         position = new Vector2(100, 400);
@@ -45,15 +46,17 @@ internal class Player : Entity
         scale = 1f;
         maxHP = 3;
         hp = maxHP;
-        hpBar = new Healthbar(maxHP, hp, content);
-        debug = false;
+        hpBar = new Healthbar(maxHP, hp);
+        debug = true;
         playerIndex = index;
         isAlive = true;
+        tilemapDisplaySize = tileDisplaySize;
         SetPlayerPositions();
     }
 
-    public override void LoadContent(ContentManager content)
+    public void LoadContent()
     {
+        var content = Globals.Content;
         var idle_spritesheet = content.Load<Texture2D>("hero_idle_4");
         var walk_spritesheet = content.Load<Texture2D>("hero_run_6");
         var jump_spritesheet = content.Load<Texture2D>("hero_jump_3");
@@ -254,7 +257,7 @@ internal class Player : Entity
                     EnterJumpState();
                 }
                 // Fall
-                if (velocity.Y > 0)
+                if (velocity.Y >= 0)
                 {
                     currentState = PlayerStates.Fall;
                     EnterFallState();
@@ -393,8 +396,8 @@ internal class Player : Entity
             Rectangle tileCollisionRectangle = new(
                 (int)tile.Key.X,
                 (int)tile.Key.Y,
-                32,
-                32
+                tilemapDisplaySize,
+                tilemapDisplaySize
             );
 
             if (velocity.X > 0 && RightCollides(tileCollisionRectangle, futureRectX))
@@ -424,8 +427,8 @@ internal class Player : Entity
             Rectangle tileCollisionRectangle = new(
                 (int)tile.Key.X,
                 (int)tile.Key.Y,
-                32,
-                32
+                tilemapDisplaySize,
+                tilemapDisplaySize
             );
 
             if (velocity.Y < 0 && TopCollides(tileCollisionRectangle, futureRectY))
@@ -449,7 +452,8 @@ internal class Player : Entity
             PlayerIndex.One => new Vector2(100, 400),
             PlayerIndex.Two => new Vector2(300, 400),
             PlayerIndex.Three => new Vector2(500, 400),
-            PlayerIndex.Four => new Vector2(700, 400)
+            PlayerIndex.Four => new Vector2(700, 400),
+            _ => new Vector2(900, 400)
         };
     }
 
@@ -464,7 +468,7 @@ internal class Player : Entity
     public override void Draw(SpriteBatch spriteBatch)
     {
         // Draw Attack
-        if (animationManager.playerIsAttacking)
+        if (debug)
         {
             spriteBatch.Draw(collisionTexture, PunchHurtBox, Color.Red * 0.2f);
         }

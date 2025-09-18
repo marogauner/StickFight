@@ -32,7 +32,7 @@ internal class Enemy : Entity
         scale = 1f;
         maxHP = 3;
         hp = maxHP;
-        hpBar = new Healthbar(maxHP, hp, content);
+        hpBar = new Healthbar(maxHP, hp);
         isAlive = true;
     }
     public override void LoadContent(ContentManager content)

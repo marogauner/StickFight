@@ -11,6 +11,12 @@ public static class Globals
     public static SpriteBatch SpriteBatch { get; set; }
     public static ContentManager Content { get; set; }
     public static InputManager Input { get; set; }
-
+    public static float ElapsedSeconds { get; set; }
     public static Point ScreenDimensions { get; set; }
+
+    public static void Update(GameTime gameTime)
+    {
+        Input.Update(gameTime);
+        ElapsedSeconds += (float)gameTime.ElapsedGameTime.TotalSeconds;
+    }
 }

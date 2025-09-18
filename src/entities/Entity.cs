@@ -5,7 +5,7 @@ using System;
 
 namespace StickFight.src.entities;
 
-internal class Entity
+public class Entity
 {
     public Vector2 position;
     public Vector2 velocity;

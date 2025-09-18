@@ -1,7 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using System;
 
 namespace StickFight.src.ui;
 
@@ -16,7 +14,7 @@ internal class Healthbar
     private Rectangle rect;
     private Texture2D texture;
     private Color color;
-    public Healthbar(int maxHealth, int health, ContentManager content)
+    public Healthbar(int maxHealth, int health)
     {
         this.maxHealth = maxHealth;
         this.health = health;
@@ -24,11 +22,12 @@ internal class Healthbar
         this.width = maxWidth;
         this.height = 10;
         color = Color.Green;
-        LoadContent(content);
+        LoadContent();
     }
     
-    public void LoadContent(ContentManager content)
+    public void LoadContent()
     {
+        var content = Globals.Content;
         texture = content.Load<Texture2D>("collisionRect");
     }
 
